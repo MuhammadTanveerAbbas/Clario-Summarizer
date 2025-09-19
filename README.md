@@ -1,6 +1,6 @@
 # Clario: Ruthless Transcript Summaries ⚡
 
-Clario is an AI-powered summarization tool that transforms raw, messy text into sharp, structured, and actionable insights. Built for speed and clarity, it offers multiple summarization modes to give you the exact perspective you need from a formal executive brief to a brutal, humorous roast.
+Clario is an AI powered summarization tool that transforms raw, messy text into sharp, structured, and actionable insights. Built for speed and clarity, it offers multiple summarization modes to give you the exact perspective you need from a formal executive brief to a brutal, humorous roast.
 
 [![Made with Next.js](https://img.shields.io/badge/Made%20with-Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![Built with React](https://img.shields.io/badge/Built%20with-React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
