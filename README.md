@@ -1,10 +1,9 @@
-<h1 align="center">Clario Summarizer ⚡</h1>
+<h1 align="center">Clario Summarizer ⚡ Tool 🛠</h1>
 <p align="center">
   <img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js" />
   <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
-  <img src="https://img.shields.io/badge/Google_Gemini-4285F4?style=for-the-badge&logo=google-gemini&logoColor=white" alt="Google Gemini" />
 </p>
 
 ## 🤔 Why Clario?
@@ -28,11 +27,11 @@ Choose the perfect summary style for any context:
 
 | Icon | Mode                   | Description                                                   |
 | :--: | ---------------------- | ------------------------------------------------------------- |
-|  📝  | **Action Items Only**  | Extracts a clean, actionable to-do list.                      |
+|  📝  | **Action Items Only**  | Extracts a clean, actionable to do list.                      |
 |  ⚖️  | **Decisions Made**     | Summarizes all key decisions and resolutions.                 |
 |  🔥  | **Brutal Roast**       | Delivers a sarcastic, humorous critique.                      |
 |  👔  | **Executive Brief**    | Provides a high level, formal summary for leaders.            |
-|  📊  | **Full Breakdown**     | Offers a detailed, section-by-section analysis.               |
+|  📊  | **Full Breakdown**     | Offers a detailed, section by section analysis.               |
 |  💬  | **Key Quotes**         | Pulls out the most impactful and memorable lines.             |
 |  😊  | **Sentiment Analysis** | Analyzes the overall tone and emotion of the text.            |
 |  👶  | **ELI5**               | Explains complex topics in the simplest terms.                |
@@ -43,7 +42,7 @@ Choose the perfect summary style for any context:
 
 - **Copy & Export:** Instantly copy the summary text or export as PDF/Markdown with a single click.
 - **History Management:** Save and access up to 50 recent summaries with load/delete functionality.
-- **Character Counter:** Real-time character count with visual feedback (50,000 char limit).
+- **Character Counter:** Real time character count with visual feedback (50,000 char limit).
 - **Browser Extension:** Chrome/Firefox extension to summarize text on any webpage.
 - **REST API:** Programmatic access for developers and integrations.
 - **Responsive Design:** Seamless experience across desktop, tablet, and mobile devices.
@@ -153,7 +152,7 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 - REST API for integrations
 - Browser extension for convenience
 - Comprehensive test suite
-- Well-documented codebase
+- Well documented codebase
 - TypeScript for type safety
 
 ### User Experience ✅
@@ -162,7 +161,7 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 - History management (50 summaries)
 - Multiple export formats (PDF, Markdown)
 - Character counter with visual feedback
-- Mobile-responsive design
+- Mobile responsive design
 - No login required
 
 ### Jack of All Trades ✅
@@ -170,7 +169,7 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 - Web app, API, and browser extension
 - Multiple export formats
 - Comprehensive documentation
-- Production-ready with testing
+- Production ready with testing
 - Scalable architecture
 
 ---
@@ -180,10 +179,3 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
-
-## 🙏 Acknowledgments
-
-- Google AI for Gemini API
-- Vercel for hosting
-- ShadCN UI for components
-- The open-source community
