@@ -1,14 +1,22 @@
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
+  turbopack: {
+    resolveAlias: {
+      canvas: './empty-module.ts',
+    },
+  },
   images: {
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'https',
@@ -30,6 +38,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+  compress: true,
+  poweredByHeader: false,
 };
 
 export default nextConfig;

@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 import {
   Baby,
   Briefcase,
   Check,
   CheckCircle2,
   ClipboardCopy,
-  FileDown,
   Flame,
   Gavel,
+  History,
   LayoutList,
   ListTodo,
   Loader2,
@@ -18,30 +18,36 @@ import {
   SmilePlus,
   Sparkles,
   Swords,
-} from 'lucide-react';
-import jsPDF from 'jspdf';
+  Trash2,
+} from "lucide-react";
 
-import { evaluateAndRefinePrompt } from '@/ai/flows/evaluate-and-refine-prompt';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { sanitizeHtml } from "@/lib/sanitize";
+import {
+  saveToHistory,
+  getHistory,
+  deleteHistoryEntry,
+  type HistoryEntry,
+} from "@/lib/history";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 // Types
-type ModeValue = 
-  | 'Action Items Only'
-  | 'Decisions Made'
-  | 'Brutal Roast'
-  | 'Executive Brief'
-  | 'Full Breakdown'
-  | 'Key Quotes'
-  | 'Sentiment Analysis'
-  | 'ELI5'
-  | 'SWOT Analysis'
-  | 'Meeting Minutes';
+type ModeValue =
+  | "Action Items Only"
+  | "Decisions Made"
+  | "Brutal Roast"
+  | "Executive Brief"
+  | "Full Breakdown"
+  | "Key Quotes"
+  | "Sentiment Analysis"
+  | "ELI5"
+  | "SWOT Analysis"
+  | "Meeting Minutes";
 
 interface SummaryMode {
   readonly value: ModeValue;
@@ -61,73 +67,86 @@ interface SummaryState {
   isLoading: boolean;
   error: string | null;
   showSuccess: boolean;
+  showHistory: boolean;
+  history: HistoryEntry[];
+  wordCount: number;
 }
 
 // Constants
 const STORAGE_KEYS = {
-  TEXT: 'summarizerText',
-  MODE: 'summarizerMode',
+  TEXT: "summarizerText",
+  MODE: "summarizerMode",
 } as const;
 
 const MIN_TEXT_LENGTH = 10;
+const MAX_WORD_COUNT = 2500;
 const SUCCESS_DISPLAY_DURATION = 2000;
+
+/**
+ * Counts words in a text string
+ * @param text - Input text
+ * @returns Number of words
+ */
+const countWords = (text: string): number => {
+  return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+};
 
 const SUMMARY_MODES: readonly SummaryMode[] = [
   {
-    value: 'Action Items Only',
-    helperText: 'Just the to-do list.',
+    value: "Action Items Only",
+    helperText: "Just the to-do list.",
     icon: ListTodo,
   },
   {
-    value: 'Decisions Made',
-    helperText: 'Key decisions, nothing else.',
+    value: "Decisions Made",
+    helperText: "Key decisions, nothing else.",
     icon: Gavel,
   },
   {
-    value: 'Brutal Roast',
-    helperText: 'Sarcastic critique with fixes.',
+    value: "Brutal Roast",
+    helperText: "Sarcastic critique with fixes.",
     icon: Flame,
   },
   {
-    value: 'Executive Brief',
-    helperText: 'High-level, formal summary.',
+    value: "Executive Brief",
+    helperText: "High level, formal summary.",
     icon: Briefcase,
   },
   {
-    value: 'Full Breakdown',
-    helperText: 'Detailed, structured analysis.',
+    value: "Full Breakdown",
+    helperText: "Detailed, structured analysis.",
     icon: LayoutList,
   },
   {
-    value: 'Key Quotes',
-    helperText: 'Extract the most impactful quotes.',
+    value: "Key Quotes",
+    helperText: "Extract the most impactful quotes.",
     icon: Quote,
   },
   {
-    value: 'Sentiment Analysis',
-    helperText: 'Analyze the tone and emotion.',
+    value: "Sentiment Analysis",
+    helperText: "Analyze the tone and emotion.",
     icon: SmilePlus,
   },
   {
-    value: 'ELI5',
+    value: "ELI5",
     helperText: "Explain it like I'm 5.",
     icon: Baby,
   },
   {
-    value: 'SWOT Analysis',
-    helperText: 'Strengths, Weaknesses, etc.',
+    value: "SWOT Analysis",
+    helperText: "Strengths, Weaknesses, etc.",
     icon: Swords,
   },
   {
-    value: 'Meeting Minutes',
-    helperText: 'Formal record of a meeting.',
+    value: "Meeting Minutes",
+    helperText: "Formal record of a meeting.",
     icon: NotebookPen,
   },
 ] as const;
 
 // Pure utility functions
-const isValidMode = (mode: string): mode is ModeValue => 
-  SUMMARY_MODES.some(m => m.value === mode);
+const isValidMode = (mode: string): mode is ModeValue =>
+  SUMMARY_MODES.some((m) => m.value === mode);
 
 const getStorageValue = (key: string): string | null => {
   try {
@@ -146,27 +165,26 @@ const setStorageValue = (key: string, value: string): void => {
   }
 };
 
-const extractTextContent = (element: HTMLElement): string => 
-  element.innerText || element.textContent || '';
+const extractTextContent = (element: HTMLElement): string =>
+  element.innerText || element.textContent || "";
 
 // Storage service
 interface StorageService {
-  loadInitialState(): Pick<SummaryState, 'text' | 'mode'>;
+  loadInitialState(): Pick<SummaryState, "text" | "mode">;
   saveText(text: string): void;
   saveMode(mode: ModeValue): void;
 }
 
 const createStorageService = (): StorageService => ({
   loadInitialState: () => {
-    const savedText = getStorageValue(STORAGE_KEYS.TEXT) || '';
+    const savedText = getStorageValue(STORAGE_KEYS.TEXT) || "";
     const savedMode = getStorageValue(STORAGE_KEYS.MODE);
-    const mode: ModeValue = savedMode && isValidMode(savedMode) 
-      ? savedMode 
-      : 'Full Breakdown';
-    
+    const mode: ModeValue =
+      savedMode && isValidMode(savedMode) ? savedMode : "Full Breakdown";
+
     return { text: savedText, mode };
   },
-  
+
   saveText: (text: string) => setStorageValue(STORAGE_KEYS.TEXT, text),
   saveMode: (mode: ModeValue) => setStorageValue(STORAGE_KEYS.MODE, mode),
 });
@@ -176,7 +194,9 @@ interface ClipboardService {
   copyText(text: string): Promise<void>;
 }
 
-const createClipboardService = (toast: ReturnType<typeof useToast>['toast']): ClipboardService => ({
+const createClipboardService = (
+  toast: ReturnType<typeof useToast>["toast"]
+): ClipboardService => ({
   copyText: async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -185,84 +205,18 @@ const createClipboardService = (toast: ReturnType<typeof useToast>['toast']): Cl
         description: "The summary has been copied to your clipboard.",
       });
     } catch (error) {
-      console.error('Clipboard copy failed:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Copy failed',
-        description: 'Could not copy to clipboard. Please try selecting and copying manually.',
-      });
-    }
-  },
-});
-
-// PDF export service
-interface PdfExportService {
-  exportElementAsPdf(element: HTMLElement): Promise<void>;
-}
-
-const createPdfExportService = (toast: ReturnType<typeof useToast>['toast']): PdfExportService => ({
-  exportElementAsPdf: async (element: HTMLElement) => {
-    try {
-      // Create PDF with text content instead of image to avoid html-to-image dependency
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 20;
-      const contentWidth = pageWidth - (margin * 2);
-      
-      // Extract and clean text content
-      const textContent = extractTextContent(element);
-      const lines = pdf.splitTextToSize(textContent, contentWidth);
-      
-      let yPosition = margin;
-      const lineHeight = 7;
-      
-      // Add title
-      pdf.setFontSize(16);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Summary Report', margin, yPosition);
-      yPosition += lineHeight * 2;
-      
-      // Add content
-      pdf.setFontSize(12);
-      pdf.setFont('helvetica', 'normal');
-      
-      for (const line of lines) {
-        if (yPosition > pageHeight - margin) {
-          pdf.addPage();
-          yPosition = margin;
-        }
-        pdf.text(line, margin, yPosition);
-        yPosition += lineHeight;
-      }
-      
-      // Add footer with timestamp
-      const timestamp = new Date().toLocaleString();
-      pdf.setFontSize(8);
-      pdf.setTextColor(128);
-      pdf.text(`Generated on ${timestamp}`, margin, pageHeight - 10);
-      
-      pdf.save('summary.pdf');
-      
-      toast({
-        title: "Export successful!",
-        description: "Your summary has been exported as a PDF.",
-      });
-    } catch (error) {
-      console.error('PDF export failed:', error);
+      console.error("Clipboard copy failed:", error);
       toast({
         variant: "destructive",
-        title: "Export failed",
-        description: "An unexpected error occurred while exporting to PDF.",
+        title: "Copy failed",
+        description:
+          "Could not copy to clipboard. Please try selecting and copying manually.",
       });
     }
   },
 });
+
+
 
 // Summary service
 interface SummaryService {
@@ -271,204 +225,293 @@ interface SummaryService {
 
 const createSummaryService = (): SummaryService => ({
   generateSummary: async (request: SummaryRequest) => {
-    const result = await evaluateAndRefinePrompt(request);
-    return result.summary;
+    const response = await fetch('/api/summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to generate summary');
+    }
+    
+    const result = await response.json();
+    return sanitizeHtml(result.summary);
   },
 });
 
 // Main component
 export function SummarizerTool() {
   const [state, setState] = useState<SummaryState>({
-    text: '',
-    mode: 'Full Breakdown',
+    text: "",
+    mode: "Full Breakdown",
     summary: null,
     isLoading: false,
     error: null,
     showSuccess: false,
+    showHistory: false,
+    history: [],
+    wordCount: 0,
   });
-  
+
   const summaryRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  
+
   // Services - injected dependencies
   const storageService = createStorageService();
   const clipboardService = createClipboardService(toast);
-  const pdfExportService = createPdfExportService(toast);
   const summaryService = createSummaryService();
-  
+
   // Initialize state from storage
   useEffect(() => {
     const initialState = storageService.loadInitialState();
-    setState(prev => ({ ...prev, ...initialState }));
+    const history = getHistory();
+    setState((prev) => ({
+      ...prev,
+      ...initialState,
+      history,
+      wordCount: countWords(initialState.text),
+    }));
   }, []);
-  
+
   // Persist text changes
   useEffect(() => {
     if (state.text) {
       storageService.saveText(state.text);
     }
   }, [state.text]);
-  
+
   // Persist mode changes
   useEffect(() => {
     storageService.saveMode(state.mode);
   }, [state.mode]);
-  
+
   // Event handlers
   const handleTextChange = (text: string): void => {
-    setState(prev => ({ ...prev, text, error: null }));
+    const wordCount = countWords(text);
+    
+    if (wordCount > MAX_WORD_COUNT) {
+      toast({
+        variant: "destructive",
+        title: "Word Limit Exceeded!",
+        description: `Maximum ${MAX_WORD_COUNT.toLocaleString()} words allowed. You have ${wordCount.toLocaleString()} words.`,
+      });
+      return;
+    }
+    
+    setState((prev) => ({
+      ...prev,
+      text,
+      error: null,
+      wordCount,
+    }));
   };
-  
+
   const handleModeChange = (mode: ModeValue): void => {
-    setState(prev => ({ ...prev, mode }));
+    setState((prev) => ({ ...prev, mode }));
   };
-  
+
   const handleCopyToClipboard = async (): Promise<void> => {
     if (!summaryRef.current) {
       toast({
-        variant: 'destructive',
-        title: 'Copy failed',
-        description: 'No summary content found to copy.',
+        variant: "destructive",
+        title: "Copy failed",
+        description: "No summary content found to copy.",
       });
       return;
     }
-    
+
     const text = extractTextContent(summaryRef.current);
     await clipboardService.copyText(text);
   };
-  
-  const handleExportAsPdf = async (): Promise<void> => {
-    if (!summaryRef.current) {
-      toast({
-        variant: 'destructive',
-        title: 'Export failed',
-        description: 'No summary content found to export.',
-      });
-      return;
-    }
-    
-    await pdfExportService.exportElementAsPdf(summaryRef.current);
-  };
-  
+
+
+
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
-    
-    setState(prev => ({
+
+    setState((prev) => ({
       ...prev,
       isLoading: true,
       error: null,
       summary: null,
       showSuccess: false,
     }));
-    
+
     try {
       const summary = await summaryService.generateSummary({
         text: state.text,
         mode: state.mode,
       });
-      
-      setState(prev => ({ ...prev, summary, showSuccess: true }));
-      
+
+      saveToHistory({ text: state.text, mode: state.mode, summary });
+      const history = getHistory();
+
+      setState((prev) => ({ ...prev, summary, showSuccess: true, history }));
+
       // Hide success indicator after delay
       setTimeout(() => {
-        setState(prev => ({ ...prev, showSuccess: false }));
+        setState((prev) => ({ ...prev, showSuccess: false }));
       }, SUCCESS_DISPLAY_DURATION);
-      
     } catch (error) {
-      console.error('Summary generation failed:', error);
-      setState(prev => ({
+      console.error("Summary generation failed:", error);
+      setState((prev) => ({
         ...prev,
-        error: 'An error occurred while generating the summary. Please try again.',
+        error:
+          "An error occurred while generating the summary. Please try again.",
       }));
     } finally {
-      setState(prev => ({ ...prev, isLoading: false }));
+      setState((prev) => ({ ...prev, isLoading: false }));
     }
   };
-  
+
+  const handleLoadFromHistory = (entry: HistoryEntry): void => {
+    setState((prev) => ({
+      ...prev,
+      text: entry.text,
+      mode: entry.mode as ModeValue,
+      summary: entry.summary,
+      showHistory: false,
+      wordCount: countWords(entry.text),
+    }));
+  };
+
+  const handleDeleteHistory = (id: string): void => {
+    deleteHistoryEntry(id);
+    setState((prev) => ({ ...prev, history: getHistory() }));
+  };
+
+
+
   // Computed values
-  const isSubmitDisabled = state.isLoading || state.text.trim().length < MIN_TEXT_LENGTH;
+  const isSubmitDisabled =
+    state.isLoading ||
+    state.wordCount < 1 ||
+    state.wordCount > MAX_WORD_COUNT;
   const hasSummary = Boolean(state.summary);
-  
+  const wordLimitColor =
+    state.wordCount > MAX_WORD_COUNT
+      ? "text-red-500"
+      : state.wordCount > MAX_WORD_COUNT * 0.9
+      ? "text-yellow-500"
+      : "text-gray-400";
+
   return (
-    <div className="mt-16 sm:mt-20">
-      <Card className="bg-background/50">
+    <div className="mt-0">
+      <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
         <CardContent className="p-4 sm:p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="text-input" className="text-lg font-semibold">
+              <Label
+                htmlFor="text-input"
+                className="text-sm font-semibold text-white sm:text-base"
+              >
                 Your Text
               </Label>
-              <Textarea
-                id="text-input"
-                placeholder="Paste your transcript here..."
-                className="min-h-[200px]"
-                aria-label="Text to summarize"
-                value={state.text}
-                onChange={(e) => handleTextChange(e.target.value)}
-              />
+              <div className="relative">
+                <Textarea
+                  id="text-input"
+                  placeholder="Paste your transcript, meeting notes, article, or any text here..."
+                  className="h-[200px] sm:h-[250px] resize-none pr-20 sm:pr-24 bg-black/50 border-white/20 text-white text-sm placeholder:text-gray-500 focus:border-white/40 focus:outline-none focus:ring-0 custom-scrollbar"
+                  aria-label="Text to summarize"
+                  value={state.text}
+                  onChange={(e) => handleTextChange(e.target.value)}
+                />
+                <div
+                  className={cn(
+                    "absolute bottom-2 right-2 text-[10px] sm:text-xs font-semibold",
+                    wordLimitColor
+                  )}
+                >
+                  {state.wordCount.toLocaleString()} / {MAX_WORD_COUNT.toLocaleString()} words
+                </div>
+              </div>
             </div>
 
             <div className="space-y-3">
-              <Label className="text-lg font-semibold">
-                Summary Style
+              <Label className="text-base font-semibold text-white">
+                Choose Summary Mode
               </Label>
               <RadioGroup
                 value={state.mode}
-                onValueChange={(value: string) => handleModeChange(value as ModeValue)}
-                className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
-                aria-label="Summary style"
+                onValueChange={(value: string) =>
+                  handleModeChange(value as ModeValue)
+                }
+                className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+                aria-label="Summary mode selection"
               >
                 {SUMMARY_MODES.map((modeOption) => (
-                  <div key={modeOption.value} className="relative">
-                    <RadioGroupItem 
-                      value={modeOption.value} 
-                      id={modeOption.value} 
-                      className="sr-only peer" 
+                  <div key={modeOption.value} className="relative group">
+                    <RadioGroupItem
+                      value={modeOption.value}
+                      id={modeOption.value}
+                      className="sr-only peer"
+                      aria-label={`${modeOption.value}: ${modeOption.helperText}`}
                     />
                     <Label
                       htmlFor={modeOption.value}
-                      className="flex h-full cursor-pointer flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-3 sm:p-4 text-center hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-colors"
+                      className="flex h-full min-h-[100px] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-white/10 bg-black/30 p-3 text-center transition-all duration-200 hover:bg-white/10 hover:border-white/30 hover:scale-105 peer-data-[state=checked]:border-[#4169E1] peer-data-[state=checked]:bg-white/10 peer-data-[state=checked]:shadow-lg peer-data-[state=checked]:shadow-[#4169E1]/20"
                     >
-                      <modeOption.icon className="mb-2 h-5 w-5 sm:h-6 sm:w-6" />
-                      <span className="text-sm sm:text-base font-medium">
+                      <modeOption.icon className="h-6 w-6 text-[#4169E1] transition-transform group-hover:scale-110" aria-hidden="true" />
+                      <span className="text-xs font-bold text-white leading-tight">
                         {modeOption.value}
                       </span>
-                      <p className="text-xs mt-1 text-muted-foreground leading-tight">
+                      <p className="text-[10px] text-gray-400 leading-tight line-clamp-2">
                         {modeOption.helperText}
                       </p>
                     </Label>
-                    <Check className="absolute top-2 right-2 h-4 w-4 opacity-0 transition-opacity peer-data-[state=checked]:opacity-100" />
+                    <Check className="absolute top-2 right-2 h-4 w-4 text-[#4169E1] opacity-0 transition-all duration-200 peer-data-[state=checked]:opacity-100 peer-data-[state=checked]:scale-110" aria-hidden="true" />
                   </div>
                 ))}
               </RadioGroup>
             </div>
 
-            <div className="flex justify-center">
-              <Button 
-                type="submit" 
-                size="lg" 
-                disabled={isSubmitDisabled} 
+            <div className="flex flex-col sm:flex-row justify-center gap-2">
+              <Button
+                type="submit"
+                size="lg"
+                disabled={isSubmitDisabled}
                 aria-label="Summarize"
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto bg-white text-black hover:bg-white/90 font-semibold disabled:opacity-40 shadow-lg"
               >
                 {state.isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Summarizing...
+                    <Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin text-[#4169E1]" />
+                    <span className="text-sm sm:text-base">Summarizing...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Summarize
+                    <Sparkles className="mr-2 h-4 w-4 sm:h-5 sm:w-5 text-[#4169E1]" />
+                    <span className="text-sm sm:text-base">Summarize</span>
                   </>
                 )}
               </Button>
+              {state.history.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() =>
+                    setState((prev) => ({
+                      ...prev,
+                      showHistory: !prev.showHistory,
+                    }))
+                  }
+                  className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10"
+                >
+                  <History className="mr-2 h-4 w-4 sm:h-5 sm:w-5 text-[#4169E1]" />
+                  <span className="text-sm sm:text-base">
+                    History ({state.history.length})
+                  </span>
+                </Button>
+              )}
             </div>
           </form>
 
           {state.error && (
-            <div className="mt-6 rounded-md border border-destructive/50 bg-destructive/10 p-4 text-center text-destructive">
-              <p className="text-sm sm:text-base">{state.error}</p>
+            <div className="mt-6 rounded-lg border border-red-500/50 bg-red-500/10 p-4 text-center">
+              <p className="text-sm sm:text-base text-red-400 font-semibold">{state.error}</p>
             </div>
           )}
 
@@ -476,36 +519,24 @@ export function SummarizerTool() {
             {hasSummary ? (
               <>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                  <div className='flex items-center gap-2'>
-                    <h3 className="text-xl sm:text-2xl font-bold">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg sm:text-xl font-bold text-white">
                       Your Summary
                     </h3>
                     {state.showSuccess && (
-                      <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-green-500 animate-in fade-in zoom-in" />
+                      <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-[#4169E1] animate-in fade-in zoom-in" />
                     )}
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCopyToClipboard}
-                      aria-label="Copy summary to clipboard"
-                      className="w-full sm:w-auto"
-                    >
-                      <ClipboardCopy className="mr-2 h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">Copy</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleExportAsPdf}
-                      aria-label="Export summary as PDF"
-                      className="w-full sm:w-auto"
-                    >
-                      <FileDown className="mr-2 h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">Export PDF</span>
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyToClipboard}
+                    aria-label="Copy summary to clipboard"
+                    className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10"
+                  >
+                    <ClipboardCopy className="mr-2 h-4 w-4 flex-shrink-0 text-[#4169E1]" />
+                    <span className="truncate">Copy</span>
+                  </Button>
                 </div>
                 <Card className="bg-[#121212] relative group">
                   <CardContent className="p-0">
@@ -518,14 +549,69 @@ export function SummarizerTool() {
                   </CardContent>
                 </Card>
               </>
-            ) : !state.isLoading && (
-              <div className="text-center text-foreground/60 py-8">
-                <p className="text-sm sm:text-base">
-                  Your summary will appear here instantly.
-                </p>
-              </div>
+            ) : (
+              !state.isLoading && (
+                <div className="text-center text-gray-400 py-8 sm:py-12">
+                  <Sparkles className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-[#4169E1]" />
+                  <p className="text-sm sm:text-base">
+                    Your summary will appear here instantly.
+                  </p>
+                </div>
+              )
             )}
           </div>
+
+          {state.showHistory && state.history.length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-xl font-bold text-white mb-4">
+                Recent Summaries
+              </h3>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {state.history.map((entry) => (
+                  <Card
+                    key={entry.id}
+                    className="bg-white/5 border-white/10 hover:bg-white/10 transition-colors"
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-semibold text-white">
+                              {entry.mode}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {new Date(entry.timestamp).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-400 truncate">
+                            {entry.text.substring(0, 100)}...
+                          </p>
+                        </div>
+                        <div className="flex gap-1 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleLoadFromHistory(entry)}
+                            className="text-white hover:bg-white/10"
+                          >
+                            Load
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteHistory(entry.id)}
+                            className="text-white hover:bg-white/10"
+                          >
+                            <Trash2 className="h-4 w-4 text-[#4169E1]" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

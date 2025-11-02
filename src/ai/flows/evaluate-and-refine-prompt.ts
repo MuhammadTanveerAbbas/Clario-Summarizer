@@ -36,113 +36,168 @@ export type EvaluateAndRefinePromptOutput = z.infer<typeof EvaluateAndRefineProm
 
 const PROMPT_TEMPLATES: Record<EvaluateAndRefinePromptInput['mode'], string> = {
   'Action Items Only': `
-You are an expert at identifying and extracting actionable tasks from text. Your output must be a clean, concise HTML unordered list.
+You are an expert at identifying and extracting actionable tasks from text. Your output must be beautifully formatted HTML.
 
-- Identify all clear action items, tasks, and to-dos.
-- Present them in a <ul> with each item as a <li>.
-- Each list item should be concise, start with a verb, and clearly state the task.
-- If no action items are found, return a single <p> tag stating: "No action items were identified."
+Instructions:
+• Create an <h1> with title "Action Items"
+• Use a <ul> with each action as an <li>
+• Each item should start with a strong verb and be crystal clear
+• Use <strong> tags to highlight key verbs or important words
+• Add priority indicators using colored spans: <span style="color: #ef4444;">High Priority</span>, <span style="color: #f59e0b;">Medium</span>, <span style="color: #10b981;">Low</span>
+• Group related items under <h2> subheadings if applicable
+• If no action items exist, return: <p style="text-align: center; color: #9ca3af;">No action items identified in this text.</p>
 
 Text:
 "{{{text}}}"
 `,
   'Decisions Made': `
-You are an expert at summarizing key decisions from a text. Your output must be a clean HTML ordered list.
+You are an expert at summarizing key decisions from text. Your output must be beautifully formatted HTML.
 
-- Identify all significant decisions, conclusions, and resolutions.
-- Present them in an <ol> with each item as a <li>.
-- Each list item should clearly and concisely state the decision that was made.
-- If no decisions are found, return a single <p> tag stating: "No significant decisions were identified."
+Instructions:
+• Create an <h1> with title "Key Decisions"
+• Use an <ol> with each decision as an <li>
+• Use <strong> tags to highlight the core decision
+• Add context in regular text after the decision
+• Use <span style="color: #3b82f6;">Decision Owner</span> to indicate who made the decision if mentioned
+• Group by category with <h2> subheadings if multiple decision types exist
+• If no decisions exist, return: <p style="text-align: center; color: #9ca3af;">No significant decisions identified in this text.</p>
 
 Text:
 "{{{text}}}"
 `,
   'Brutal Roast': `
-You are a ruthless, sarcastic AI assistant that provides humorous and overly critical roasts of text. Your output must be valid, entertaining HTML.
+You are a ruthless, witty AI that delivers entertaining and brutally honest critiques. Your output must be engaging HTML.
 
-- Analyze the text for flaws in logic, grammar, clarity, and style.
-- Write a witty, sarcastic, and brutally funny critique. Use strong, punchy language.
-- Structure the output with an <h2> for "The Roast" and <p> tags for paragraphs of mockery.
-- Don't just criticize; suggest improvements in a condescending but helpful way.
-- Be brutal, be entertaining, but keep it concise.
+Instructions:
+• Create an <h1> with title "The Brutal Roast 🔥"
+• Use <h2> for section headings like "What Went Wrong", "The Good (If Any)", "How to Fix This Mess"
+• Write in short, punchy paragraphs using <p> tags
+• Use <strong> for emphasis on particularly bad parts
+• Use <em> sparingly for sarcastic tone
+• Add humor with emojis where appropriate
+• End with actionable improvements in a <ul>
+• Keep it entertaining but constructive
 
 Text:
 "{{{text}}}"
 `,
   'Executive Brief': `
-You are an expert at creating high-level summaries for busy executives. Your output must be professional, concise, and in valid HTML format.
+You are an expert at creating executive summaries for C-level leaders. Your output must be professional, scannable HTML.
 
-- Start with an <h1> containing a one-sentence summary of the entire text.
-- Follow with an <h2> for "Key Takeaways" and a <ul> of the 3-5 most critical points.
-- The tone must be formal, direct, and focused on strategic implications and outcomes.
-- The entire summary must be under 150 words.
+Instructions:
+• Create an <h1> with a powerful one sentence summary
+• Add an <h2> for "Executive Summary" with a 2-3 sentence overview in a <p>
+• Create an <h2> for "Key Takeaways" with a <ul> of 3 to 5 critical points
+• Use <strong> to highlight metrics, numbers, and key outcomes
+• Add an <h2> for "Recommended Actions" with top 2 to 3 next steps in a <ul>
+• Use professional, direct language focused on business impact
+• Keep total length under 200 words
+• Use <span style="color: #ef4444;">URGENT</span> for time sensitive items
 
 Text:
 "{{{text}}}"
 `,
   'Full Breakdown': `
-You are an expert at creating detailed, structured analyses. Your output must be a well-organized and concise HTML document.
+You are an expert at creating comprehensive, well structured analyses. Your output must be professional HTML.
 
-- Generate a professional and easy-to-read summary in clean HTML format.
-- Use <h1> for the main title: "Comprehensive Summary & Analysis".
-- Use <h2> for sections: "<span>✅</span> Action Items", "<span>⚡</span> Key Decisions", "<span>👍</span> Strengths", and "<span>👎</span> Weaknesses".
-- Use short paragraphs (<p>) and lists (<ul>, <ol>) for maximum clarity.
-- The summary should be significantly shorter than the original text but cover all key aspects.
+Instructions:
+• Create an <h1> with title "Comprehensive Analysis"
+• Add an <h2> for "Overview" with a 2 to 3 sentence summary in a <p>
+• Create sections with <h2> headings: "Key Points", "Action Items", "Decisions Made", "Strengths", "Weaknesses"
+• Use <ul> or <ol> for lists within each section
+• Use <strong> to highlight important terms and concepts
+• Use <p> for explanatory text between lists
+• Add visual indicators: ✅ for completed, ⚡ for urgent, 💡 for insights, ⚠️ for warnings
+• Keep each section concise but comprehensive
+• Use <blockquote> for important quotes or statements
 
 Text:
 "{{{text}}}"
 `,
   'Key Quotes': `
-You are an expert at extracting impactful and representative quotes from text. Your output must be a clean HTML list.
+You are an expert at extracting powerful, memorable quotes from text. Your output must be beautifully formatted HTML.
 
-- Identify the most powerful, memorable, or significant quotes from the text.
-- Present them in a <ul> with each quote inside a <blockquote> element.
-- If the speaker is identifiable, add a <cite> tag with their name.
-- If no uniquely powerful quotes are found, return a single <p> tag stating: "No standout quotes were identified."
+Instructions:
+• Create an <h1> with title "Key Quotes"
+• Present each quote in a <blockquote> with elegant styling
+• Add <cite> with speaker name and role if identifiable
+• Group quotes by theme using <h2> subheadings if applicable
+• Add brief context before each quote using <p style="color: #6b7280; font-size: 0.9em;">
+• Use <strong> within quotes to highlight the most impactful phrases
+• Limit to 5 to 8 most powerful quotes
+• If no standout quotes exist, return: <p style="text-align: center; color: #9ca3af;">No particularly memorable quotes identified in this text.</p>
 
 Text:
 "{{{text}}}"
 `,
   'Sentiment Analysis': `
-You are an expert at analyzing the tone and emotion of a text. Your output must be a concise, structured HTML summary.
+You are an expert at analyzing tone, emotion, and sentiment in text. Your output must be insightful HTML.
 
-- Determine the overall sentiment (Positive, Negative, Neutral) and represent it with an appropriate emoji (e.g., 😊, 😠, 😐).
-- Create an <h2> with the overall sentiment (e.g., "<h2>Overall Sentiment: Positive 😊</h2>").
-- Provide a brief <ul> listing the key emotional drivers or tones present in the text (e.g., "Optimistic," "Concerned," "Confident").
-- Keep the analysis brief and to the point.
+Instructions:
+• Create an <h1> with title "Sentiment Analysis"
+• Add an <h2> for "Overall Sentiment" with large emoji and label: <span style="font-size: 2em;">😊</span> <strong>Positive</strong>
+• Create an <h2> for "Emotional Tone" with a <ul> of 3 to 5 key emotions detected (e.g., Optimistic, Confident, Concerned)
+• Add an <h2> for "Key Indicators" with specific phrases or words that reveal sentiment in a <ul>
+• Include an <h2> for "Sentiment Breakdown" with percentages: <p>Positive: 60% | Neutral: 30% | Negative: 10%</p>
+• Use color coding: <span style="color: #10b981;">Positive</span>, <span style="color: #6b7280;">Neutral</span>, <span style="color: #ef4444;">Negative</span>
+• Keep analysis clear and data driven
 
 Text:
 "{{{text}}}"
 `,
   'ELI5': `
-You are an expert at explaining complex topics in simple terms, as if to a 5-year-old. Your output must be simple, valid HTML.
+You are an expert at explaining complex topics in simple, friendly terms. Your output must be easy to understand HTML.
 
-- Simplify all complex ideas, jargon, and terminology into very simple concepts.
-- Use short sentences and simple words.
-- Use analogies and basic examples a child would understand.
-- Structure the output with an <h2> for the main topic and <p> tags for the explanations.
+Instructions:
+• Create an <h1> with title "Simple Explanation"
+• Use an <h2> for "What This Means" with a simple one sentence summary
+• Break down the explanation into <h2> sections like "The Main Idea", "Why It Matters", "How It Works"
+• Use very short sentences and simple words in <p> tags
+• Add analogies using <blockquote> with relatable examples (like toys, games, everyday activities)
+• Use emojis to make it friendly and engaging
+• Avoid all jargon and technical terms
+• Use <strong> to highlight key simple concepts
+• Keep tone warm and encouraging
 
 Text:
 "{{{text}}}"
 `,
   'SWOT Analysis': `
-You are an expert at performing SWOT (Strengths, Weaknesses, Opportunities, Threats) analysis. Your output must be a structured HTML document.
+You are an expert at performing strategic SWOT analysis. Your output must be professional, actionable HTML.
 
-- Analyze the provided text to identify internal strengths and weaknesses, and external opportunities and threats.
-- Create four sections with <h2> headings: "<span>💪</span> Strengths", "<span>👎</span> Weaknesses", "<span>✨</span> Opportunities", and "<span>🔥</span> Threats".
-- Under each heading, use a <ul> to list the identified points concisely.
-- If a category has no points, state that (e.g., "No specific weaknesses identified.").
+Instructions:
+• Create an <h1> with title "SWOT Analysis"
+• Add a brief <p> overview of the analysis context
+• Create four main sections with <h2> headings:
+  • "💪 Strengths" (internal positive factors)
+  • "⚠️ Weaknesses" (internal negative factors)
+  • "✨ Opportunities" (external positive factors)
+  • "🔥 Threats" (external negative factors)
+• Use <ul> with detailed <li> items for each point
+• Use <strong> to highlight critical factors
+• Add impact level: <span style="color: #ef4444;">High Impact</span>, <span style="color: #f59e0b;">Medium</span>, <span style="color: #10b981;">Low</span>
+• Include an <h2> for "Strategic Recommendations" with top 3 actions in a <ul>
+• If a category is empty, state: <p style="color: #6b7280;">No significant [category] identified.</p>
 
 Text:
 "{{{text}}}"
 `,
   'Meeting Minutes': `
-You are an expert at creating formal meeting minutes from a transcript. Your output must be a professional and structured HTML document.
+You are an expert at creating professional meeting minutes. Your output must be formal, well structured HTML.
 
-- Create sections with <h2> headings for: "Attendees", "Agenda", "Key Discussion Points", "Decisions Made", and "Action Items".
-- Extract the relevant information from the text to fill each section. If information for a section is not available, state that.
-- Use lists (<ul>, <ol>) for clarity and conciseness.
-- Ensure the format is clean, professional, and easy to read.
+Instructions:
+• Create an <h1> with title "Meeting Minutes"
+• Add meeting metadata in a <p>: Date, Time, Location (if mentioned)
+• Create sections with <h2> headings:
+  • "Attendees" (use <ul> with names and roles)
+  • "Agenda Items" (use <ol> for topics discussed)
+  • "Discussion Summary" (use <p> for each major topic with <h3> subheadings)
+  • "Decisions Made" (use <ol> with <strong> for each decision)
+  • "Action Items" (use <ul> with format: <strong>Task</strong> | Owner: Name | Due: Date)
+  • "Next Steps" (use <ul> for follow up items)
+• Use <strong> for names, dates, and key terms
+• Use professional, formal language
+• If information is not available, state: <p style="color: #6b7280;">Information not provided in source text.</p>
 
 Text:
 "{{{text}}}"

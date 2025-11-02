@@ -1,0 +1,16 @@
+{
+  "name": "Clario - AI Text Summarizer",
+  "short_name": "Clario",
+  "description": "Transform meeting transcripts and articles into clear summaries with AI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#4169E1",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
