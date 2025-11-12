@@ -123,57 +123,6 @@ See [browser-extension/README.md](browser-extension/README.md) for installation 
 
 ---
 
-## 📚 Documentation
-
-- **[API Documentation](docs/API.md)** - REST API usage and examples
-- **[Privacy Policy](docs/PRIVACY.md)** - Data handling and security practices
-- **[Browser Extension Guide](browser-extension/README.md)** - Extension installation and usage
-- **[Changelog](CHANGELOG.md)** - Version history and updates
-
----
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/your-username/clario/issues).
-
----
-
-## 🌟 What Makes Clario 10/10?
-
-### Security & Privacy ✅
-
-- HTML sanitization prevents XSS attacks
-- Rate limiting prevents abuse
-- Input validation and character limits
-- Comprehensive privacy documentation
-
-### Developer Experience ✅
-
-- REST API for integrations
-- Browser extension for convenience
-- Comprehensive test suite
-- Well documented codebase
-- TypeScript for type safety
-
-### User Experience ✅
-
-- 10 specialized summary modes
-- History management (50 summaries)
-- Multiple export formats (PDF, Markdown)
-- Character counter with visual feedback
-- Mobile responsive design
-- No login required
-
-### Jack of All Trades ✅
-
-- Web app, API, and browser extension
-- Multiple export formats
-- Comprehensive documentation
-- Production ready with testing
-- Scalable architecture
-
----
-
 ## 📜 License
 
 Distributed under the MIT License. See `LICENSE` for more information.
