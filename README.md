@@ -111,20 +111,25 @@ To get a local copy up and running, follow these simple steps.
     ```
 5.  Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-### Running Tests
+---
 
-```sh
-npm test
-```
+<div align="center">
 
-### Browser Extension
+# 👨‍💻 Muhammad Tanveer Abbas
 
-See [browser-extension/README.md](browser-extension/README.md) for installation instructions.
+**SaaS MVP Developer** • **AI Integration Expert** • **Full Stack Developer**
+
+⚡ Specialized in Building Production Ready SaaS MVPs for founders in Weeks
+
+**Next.js • TypeScript • Firebase • AI • Tailwind CSS**
+
+💼 **[View Portfolio](https://muhammadtanveerabbas.vercel.app/)**
 
 ---
 
-## 📜 License
+⭐ **Star this repo** if you find it inspiring!
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Built with ❤️ to showcase professional SaaS MVP development.
 
----
+</div>
+
